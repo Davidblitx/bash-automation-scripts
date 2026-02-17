@@ -1,20 +1,75 @@
 # Bash Automation Suite
 
-A collection of production-ready Bash scripts designed to automate common System Administration and DevOps tasks.
+Production-ready Bash scripts for DevOps automation.
 
-## Scripts Included
+## Scripts
 
-### 1. System Backup (`system-backup.sh`)
-- **Purpose**: Creates compressed `.tar.gz` backups of a source directory with unique timestamps.
-- **Features**: Includes directory verification to prevent errors if the source is missing.
+### 1. system-backup.sh
+Automated backup with retention management.
 
-### 2. Deployment Health Check (`deployment-check.sh`)
-- **Purpose**: Monitors service availability by checking HTTP status codes.
-- **Features**: Logs all attempts (Success/Failure) with timestamps to `deployment.log` for audit trails.
+**Features:**
+- Timestamped archives (.tar.gz)
+- Configurable retention (default: 30 days)
+- Automatic cleanup of old backups
+- Full operation logging
 
-### 3. User Provisioning (`user-provision.sh`)
-- **Purpose**: Automates the creation of new Linux users with home directories.
-- **Features**: Enforces root/sudo privileges and checks for existing users before execution to ensure idempotency.
+**Usage:**
+```bash
+./system-backup.sh
+```
 
 ---
 
+### 2. deployment-check.sh
+Pre-deployment validation script.
+
+**Checks:**
+- Required services are running
+- Disk space within threshold
+- Network connectivity to critical hosts
+
+**Usage:**
+```bash
+./deployment-check.sh
+```
+
+**Exit codes:**
+- `0` = All checks passed (safe to deploy)
+- `1` = One or more checks failed (deployment blocked)
+
+---
+
+### 3. user-provision.sh
+Automated user onboarding.
+
+**Features:**
+- Creates user with home directory
+- Adds to docker group automatically
+- Audit logging to /var/log/user-provision.log
+- Validates user doesn't already exist
+
+**Usage:**
+```bash
+sudo ./user-provision.sh <username>
+```
+
+---
+
+## What I Learned
+
+Writing these scripts taught me:
+- Error handling with exit codes
+- Logging patterns for production scripts
+- How to test both success and failure scenarios
+- Why deployment automation prevents human error
+
+## Part of My DevOps Journey
+
+Foundation phase:
+- ✅ Linux fundamentals
+- ✅ Git workflow
+- ✅ Networking concepts
+- ✅ Docker containerization
+- ✅ Bash automation
+- ⏳ Python for automation
+- ⏳ AWS cloud infrastructure
