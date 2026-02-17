@@ -1,27 +1,71 @@
 #!/bin/bash
 
-# --- 1. Configuration ---
-URL="https://www.google.com"
-LOG_FILE="deployment.log"
+# Configuration 
+SERVICES=("docker" "ssh")
+HOSTS=("google.com" "github.com")
+DISK_THRESHOLD=80
+LOGFILE="deployment.log"
 
-# --- 2. The Check ---
-echo "Checking connection to $URL..."
-status_code=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+# Counters
+CHECKS_PASSED=0
+CHECKS_FAILED=0
 
-# --- 3. Logic & Logging ---
-if [ "$status_code" = "200" ]; then
-    # Successful Path
-    echo "Status code is 200 - Site is UP"
-    # The '>>' appends the date and success message to the log file.
-    echo "$(date): SUCCESS - $URL is accessible (200 OK)" >> "$LOG_FILE"
+# Section 1: Check Services
+echo "=== Checking services ==="
+for service in "${SERVICES[@]}"; do
+     echo "Checking services for $service"
+    if systemctl is-active --quiet "$service"; then
+         echo "✓ $service is running"
+         CHECKS_PASSED=$((CHECKS_PASSED + 1))
+    else
+         echo "✗ $service is not running"
+         CHECKS_FAILED=$((CHECKS_FAILED +1))
+         
+    fi
+done
+
+# Check Disk Space
+echo ""
+echo "=== Checking Disk Space ==="
+DISK_SPACE=$(df -h / | awk 'NR==2 {print $5}' | tr -d '%')
+if [ $DISK_SPACE -gt $DISK_THRESHOLD ]; then 
+     echo "x WARNING: Disk space is above $DISK_THRESHOLD"
+     CHECKS_FAILED=$((CHECKS_FAILED + 1))
 else
-    # Failure Path
-    echo "Sound the alarm - Status code is $status_code"
-    # Log the failure with the specific error code
-    echo "$(date): CRITICAL - $URL is down. Status: $status_code" >> "$LOG_FILE"
-    
-    # Exit with code 1 to tell the system the script failed
-    exit 1
+     echo "✓ Disk space is OK"
+     CHECKS_PASSED=$((CHECKS_PASSED +1))
 fi
 
+# Check Network connectivity
+echo ""
+echo "=== Checking Network ==="
+for host in "${HOSTS[@]}"; do
+     echo "Checking connectivity for $host"
+     if ping -c 1 $host &> /dev/null; then
+          echo "✓ Can reach $host"
+          CHECKS_PASSED=$((CHECKS_PASSED + 1))
+     else
+          echo "x Cannot reach $host"
+          CHECKS_FAILED=$((CHECKS_FAILED +1))
+     fi
+done
+
+# Section 4: Summary
+echo ""
+echo "=== Summary ==="
+echo "Passed: $CHECKS_PASSED"
+echo "Failed: $CHECKS_FAILED"
+echo ""
+
+# Log results
+echo "$(date): Checks run - Passed: $CHECKS_PASSED, Failed: $CHECKS_FAILED" >> $LOGFILE
+
+# Exit with appropriate code
+if [ $CHECKS_FAILED -gt 0 ]; then
+    echo "✗ DEPLOYMENT BLOCKED - Fix failures first"
+    exit 1
+else
+    echo "✓ ALL CHECKS PASSED - Safe to deploy"
+    exit 0
+fi
 
